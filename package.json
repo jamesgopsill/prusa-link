@@ -1,0 +1,43 @@
+{
+	"$schema": "https://json.schemastore.org/package",
+	"name": "@jamesgopsill/prusa-link",
+	"version": "0.1.0",
+	"description": "A Typescript PrusaLink client",
+	"keywords": [
+		"Prusa",
+		"3D Printing"
+	],
+	"author": "James Gopsill",
+	"license": "MIT",
+	"private": false,
+	"type": "module",
+	"main": "dist/index.js",
+	"repository": {
+		"type": "github",
+		"url": "https://github.com/jamesgopsill/prusa-link"
+	},
+	"homepage": "https://jamesgopsill.github.io/prusa-link",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/jamesgopsill"
+	},
+	"engines": {
+		"node": ">=20.0.0"
+	},
+	"engineStrict": true,
+	"files": [
+		"/dist/**/*"
+	],
+	"scripts": {
+		"test": "tsc --noEmit && node --import tsx --test __tests__/*.test.ts",
+		"build:dist": "rm -rf dist && tsc",
+		"build:docs": "typedoc",
+		"format": "prettier --write ."
+	},
+	"devDependencies": {
+		"prettier": "^3.2.5",
+		"tsx": "^4.7.1",
+		"typedoc": "^0.25.9",
+		"typescript": "^5.3.3"
+	}
+}
