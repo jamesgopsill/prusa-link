@@ -121,11 +121,10 @@ export class PrusaLink {
 	}
 }
 
-async function _fetch<T>(
+async function _fetch<T = any>(
 	this: PrusaLink,
 	method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD",
 	uri: string,
-	//params: { [k: string]: any } | undefined = undefined,
 ) {
 	const url = `http://${this._ip}${uri}`
 
@@ -144,7 +143,7 @@ async function _fetch<T>(
 	const auth = await this._digest(request, uri)
 
 	if (typeof auth === "object") {
-		return auth
+		return auth as HTTPResponse<T>
 	}
 
 	// append the auth header
@@ -166,8 +165,7 @@ async function _fetch<T>(
 }
 
 async function _digest(this: PrusaLink, request: Request, uri: string) {
-	let r = (await fetch(request)) as HTTPResponse
-	r.content = undefined
+	let r = await fetch(request)
 
 	// Should get an auth error first time round
 	if (r.status !== 401) {

@@ -36,7 +36,7 @@ export async function putFile(
 		}
 
 		const request = new Request(url, config)
-		auth = await this._digest(request, uri)
+		auth = (await this._digest(request, uri)) as HTTPResponse
 	}
 
 	if (typeof auth === "object") {

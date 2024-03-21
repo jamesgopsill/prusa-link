@@ -10,16 +10,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: main
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 20
-          registry-url: "https://registry.npmjs.org"
-      - name: Install PNPM
-        run: npm install -g pnpm
-      - name: Download Packages
-        run: pnpm install
+      - uses: oven-sh/setup-bun@v1
+      - name: Install Packages
+        run: bun install
       - name: Build Docs
-        run: pnpm build:docs
+        run: bun build:docs
       # Upload docs artifact for github-pages
       - uses: actions/upload-pages-artifact@v1
         with:

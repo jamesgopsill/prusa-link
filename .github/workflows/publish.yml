@@ -16,13 +16,12 @@ jobs:
         with:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
-      - name: Install PNPM
-        run: npm install -g pnpm
-      - name: Download Dependencies
-        run: pnpm install
+      - uses: oven-sh/setup-bun@v1
+      - name: Install Packages
+        run: bun install
       - name: Build Package
-        run: pnpm build:dist
+        run: bun build:dist
       - name: Publish Package
-        run: pnpm publish --no-git-checks --access public
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
