@@ -1,4 +1,4 @@
-import * as API from "./api.js"
+import { putFile } from "./api.js"
 import { keysToCamel } from "./format-keys.js"
 import { md5 } from "./md5.js"
 import {
@@ -6,6 +6,7 @@ import {
 	Env,
 	HTTPResponse,
 	Info,
+	Job,
 	Status,
 	Transfer,
 	Version,
@@ -60,7 +61,10 @@ export class PrusaLink {
 	}
 
 	public job = {
-		get: () => this._fetch("GET", `/api/v1/job`),
+		get: (id?: string) => {
+			if (id) return this._fetch<Job>("GET", `/api/v1/job/${id}`)
+			return this._fetch<Job>("GET", `/api/v1/job`)
+		},
 		delete: (id: string) => this._fetch("DELETE", `/api/v1/job/${id}`),
 		pause: (id: string) => this._fetch("PUT", `/api/v1/job/${id}/pause`),
 		resume: (id: string) => this._fetch("PUT", `/api/v1/job/${id}/resume`),
@@ -70,7 +74,22 @@ export class PrusaLink {
 	public files = {
 		file: (storage: string, path: string) =>
 			this._fetch<File>("GET", `/api/v1/files/${storage}/${path}`),
-		put: API.putFile.bind(this),
+		put: (
+			gcode: string,
+			storage: string,
+			path: string,
+			printAfterUpload: number = 0,
+			overwrite: number = 0,
+		) => {
+			return putFile.call(
+				this,
+				gcode,
+				storage,
+				path,
+				printAfterUpload,
+				overwrite,
+			)
+		},
 		post: (storage: string, path: string) =>
 			this._fetch("POST", `/api/v1/files/${storage}/${path}`),
 		head: (storage: string, path: string) =>
@@ -125,47 +144,67 @@ async function _fetch<T = any>(
 	this: PrusaLink,
 	method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD",
 	uri: string,
-) {
+): Promise<HTTPResponse<T>> {
 	const url = `http://${this._ip}${uri}`
-
-	let config: any = {
-		method,
-		mode: "cors",
-		headers: {},
-	}
 
 	if (this._debug) {
 		console.log(`PrusaLink._fetch: ${url}`)
 	}
 
-	let request = new Request(url, config)
+	let request: Request = new Request(url, {
+		method,
+		mode: "cors",
+		headers: {
+			Connection: "keep-alive",
+		},
+	})
 
 	const auth = await this._digest(request, uri)
 
-	if (typeof auth === "object") {
+	if (auth instanceof Response) {
 		return auth as HTTPResponse<T>
 	}
 
-	// append the auth header
-	config.headers["Authorization"] = auth
+	// create the new authed request
+	request = new Request(url, {
+		method,
+		mode: "cors",
+		headers: {
+			Connection: "keep-alive",
+			Authorization: auth,
+		},
+	})
 
-	// create the new request
-	request = new Request(`http://${this._ip}${uri}`, config)
-	const r = (await fetch(request)) as HTTPResponse<T>
+	// Wrap a try and catch to catch ECONNRESET
+	try {
+		const r = (await fetch(request)) as HTTPResponse<T>
 
-	if (r.ok && r.status === 200) {
-		if (r.headers.get("Content-Type")?.includes("application/json")) {
-			let content = await r.json()
-			content = keysToCamel(content)
-			r.content = content
+		if (r.ok && r.status === 200) {
+			if (r.headers.get("Content-Type")?.includes("application/json")) {
+				let content = await r.json()
+				content = keysToCamel(content)
+				r.content = content
+			}
 		}
+		return r
+	} catch (e) {
+		return new Response(undefined, { status: 500 }) as HTTPResponse<T>
 	}
-
-	return r
 }
 
-async function _digest(this: PrusaLink, request: Request, uri: string) {
-	let r = await fetch(request)
+async function _digest(
+	this: PrusaLink,
+	request: Request,
+	uri: string,
+): Promise<string | Response> {
+	let r: Response
+
+	// Wrap a try and catch to catch ECONNRESET
+	try {
+		r = await fetch(request)
+	} catch (e) {
+		return new Response(undefined, { status: 500 })
+	}
 
 	// Should get an auth error first time round
 	if (r.status !== 401) {
@@ -204,5 +243,6 @@ async function _digest(this: PrusaLink, request: Request, uri: string) {
 	const responseHash = md5(responseString)
 
 	const authorization = `Digest username="${this._username}", realm="${realm}", nonce="${nonce}", uri="${uri}", response="${responseHash}"`
+
 	return authorization
 }

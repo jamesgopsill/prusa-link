@@ -6,7 +6,7 @@ The package has been built from the [Prusa-Web-Link OpenAPI](https://github.com/
 
 ##
 
-To install the package, use the following code (switch our `pnpm` for `npm`, `yarn` or `bun`).
+To install the package, use the following code (switch out `pnpm` for your chosen package manager `npm`, `yarn` or `bun`).
 
 ```
 pnpm install @jamesgopsill/prusa-link
@@ -34,6 +34,27 @@ if (r.content) console.log(r.content)
 ## Documentation
 
 The docs have been produced using [TypeDoc](https://typedoc.org/) and can be accessed [here](https://jamesgopsill.github.io/prusa-link).
+
+## Running the tests
+
+To run the test suite, you will need to create a `setup.ts` file in the `__tests__` folder and paste in the following lines of code with your config. And, have a prusa printer on your network 😊.
+
+```typescript
+import { beforeAll } from "bun:test"
+import { PrusaLink, PrusaLinkConfig } from "../src/index.ts"
+
+export let link: PrusaLink
+
+beforeAll(() => {
+	const config: PrusaLinkConfig = {
+		ip: "",
+		username: "",
+		password: "",
+		debug: true,
+	}
+	link = new PrusaLink(config)
+})
+```
 
 ## References
 

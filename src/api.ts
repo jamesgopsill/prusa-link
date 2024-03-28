@@ -9,7 +9,7 @@ export async function putFile(
 	path: string,
 	printAfterUpload: number = 0,
 	overwrite: number = 0,
-) {
+): Promise<HTTPResponse> {
 	const uri = `/api/v1/files/${storage}/${path}`
 	const url = `http://${this._ip}${uri}`
 
@@ -20,27 +20,28 @@ export async function putFile(
 	// #######################
 	// Digest auth
 
-	let auth: string | HTTPResponse = ""
+	let auth: string | Response = ""
 
 	{
 		const config: any = {
 			method: "PUT",
 			mode: "cors",
 			headers: {
+				Connection: "keep-alive",
 				"Print-After-Upload": `?${printAfterUpload}`,
 				Overwrite: `?${overwrite}`,
 				"Content-Type": "text/x.gcode",
 				"Content-Length": gcode.length,
 			},
-			body: gcode,
+			body: "",
 		}
 
 		const request = new Request(url, config)
-		auth = (await this._digest(request, uri)) as HTTPResponse
+		auth = await this._digest(request, uri)
 	}
 
-	if (typeof auth === "object") {
-		return auth
+	if (auth instanceof Response) {
+		return auth as HTTPResponse
 	}
 
 	// #############
@@ -51,6 +52,7 @@ export async function putFile(
 			method: "PUT",
 			mode: "cors",
 			headers: {
+				Connection: "keep-alive",
 				"Print-After-Upload": `?${printAfterUpload}`,
 				Overwrite: `?${overwrite}`,
 				"Content-Type": "text/x.gcode",
